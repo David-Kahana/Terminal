@@ -1,0 +1,9 @@
+QMAKE_CXX.INCDIRS = "C:\\Program Files (x86)\\IntelSWTools\\compilers_and_libraries_2017.4.210\\windows\\ipp\\include"
+QMAKE_CXX.LIBDIRS = "C:\\Program Files (x86)\\IntelSWTools\\compilers_and_libraries_2017.4.210\\windows\\ipp\\lib\\intel64"
+QMAKE_CXX.QT_COMPILER_STDCXX = 199711L
+QMAKE_CXX.QMAKE_MSC_VER = 1912
+QMAKE_CXX.QMAKE_MSC_FULL_VER = 191225834
+QMAKE_CXX.COMPILER_MACROS = \
+    QT_COMPILER_STDCXX \
+    QMAKE_MSC_VER \
+    QMAKE_MSC_FULL_VER
