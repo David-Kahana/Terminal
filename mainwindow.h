@@ -84,10 +84,11 @@ private slots:
     void readData();
 
     void handleError(QSerialPort::SerialPortError error);
+	void sendFiles();
 
 private:
     void initActionsConnections();
-
+	
 private:
     void showStatusMessage(const QString &message);
 
@@ -96,6 +97,7 @@ private:
     Console *m_console = nullptr;
     SettingsDialog *m_settings = nullptr;
     QSerialPort *m_serial = nullptr;
+	QStringList m_filesToSend;
 };
 
 #endif // MAINWINDOW_H

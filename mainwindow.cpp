@@ -55,19 +55,17 @@
 #include "settingsdialog.h"
 #include <QLabel>
 #include <QMessageBox>
+#include <QFileDialog>
 
-//! [0]
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     m_ui(new Ui::MainWindow),
     m_status(new QLabel),
     m_console(new Console),
     m_settings(new SettingsDialog),
-//! [1]
     m_serial(new QSerialPort(this))
-//! [1]
 {
-//! [0]
+	m_filesToSend.clear();
     m_ui->setupUi(this);
     m_console->setEnabled(false);
     //setCentralWidget(m_console);
@@ -83,13 +81,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(m_serial, &QSerialPort::errorOccurred, this, &MainWindow::handleError);
 
-//! [2]
     connect(m_serial, &QSerialPort::readyRead, this, &MainWindow::readData);
-//! [2]
+
     connect(m_console, &Console::getData, this, &MainWindow::writeData);
-//! [3]
 }
-//! [3]
 
 MainWindow::~MainWindow()
 {
@@ -97,7 +92,6 @@ MainWindow::~MainWindow()
     delete m_ui;
 }
 
-//! [4]
 void MainWindow::openSerialPort()
 {
     const SettingsDialog::Settings p = m_settings->settings();
@@ -122,9 +116,7 @@ void MainWindow::openSerialPort()
         showStatusMessage(tr("Open error"));
     }
 }
-//! [4]
 
-//! [5]
 void MainWindow::closeSerialPort()
 {
     if (m_serial->isOpen())
@@ -135,7 +127,6 @@ void MainWindow::closeSerialPort()
     m_ui->actionConfigure->setEnabled(true);
     showStatusMessage(tr("Disconnected"));
 }
-//! [5]
 
 void MainWindow::about()
 {
@@ -145,22 +136,17 @@ void MainWindow::about()
                           "using Qt, with a menu bar, toolbars, and a status bar."));
 }
 
-//! [6]
 void MainWindow::writeData(const QByteArray &data)
 {
     m_serial->write(data);
 }
-//! [6]
 
-//! [7]
 void MainWindow::readData()
 {
     const QByteArray data = m_serial->readAll();
     m_console->putData(data);
 }
-//! [7]
 
-//! [8]
 void MainWindow::handleError(QSerialPort::SerialPortError error)
 {
     if (error == QSerialPort::ResourceError) {
@@ -168,7 +154,6 @@ void MainWindow::handleError(QSerialPort::SerialPortError error)
         closeSerialPort();
     }
 }
-//! [8]
 
 void MainWindow::initActionsConnections()
 {
@@ -179,9 +164,23 @@ void MainWindow::initActionsConnections()
     connect(m_ui->actionClear, &QAction::triggered, m_console, &Console::clear);
     connect(m_ui->actionAbout, &QAction::triggered, this, &MainWindow::about);
     connect(m_ui->actionAboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
+	connect(m_ui->actionSend_FIle, &QAction::triggered, this, &MainWindow::sendFiles);
 }
 
 void MainWindow::showStatusMessage(const QString &message)
 {
     m_status->setText(message);
+}
+
+void MainWindow::sendFiles()
+{
+	m_filesToSend.clear();
+	m_filesToSend = QFileDialog::getOpenFileNames(this,	"Select one or more files to send",	".","text (*.txt *.csv);; binary (*.bin)");
+	if (m_filesToSend.size() > 0)
+	{
+		for (int i = 0; i < m_filesToSend.size(); ++i)
+		{
+			printf_s("%d) %s\n", i + 1, m_filesToSend[i].toStdString().c_str());
+		}
+	}
 }
