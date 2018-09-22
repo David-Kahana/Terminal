@@ -101,7 +101,8 @@ void MainWindow::openSerialPort()
     m_serial->setParity(p.parity);
     m_serial->setStopBits(p.stopBits);
     m_serial->setFlowControl(p.flowControl);
-    if (m_serial->open(QIODevice::ReadWrite)) {
+    if (m_serial->open(QIODevice::ReadWrite)) 
+	{
         m_console->setEnabled(true);
         m_console->setLocalEchoEnabled(p.localEchoEnabled);
         m_ui->actionConnect->setEnabled(false);
@@ -110,9 +111,10 @@ void MainWindow::openSerialPort()
         showStatusMessage(tr("Connected to %1 : %2, %3, %4, %5, %6")
                           .arg(p.name).arg(p.stringBaudRate).arg(p.stringDataBits)
                           .arg(p.stringParity).arg(p.stringStopBits).arg(p.stringFlowControl));
-    } else {
+    } 
+	else 
+	{
         QMessageBox::critical(this, tr("Error"), m_serial->errorString());
-
         showStatusMessage(tr("Open error"));
     }
 }
@@ -175,12 +177,40 @@ void MainWindow::showStatusMessage(const QString &message)
 void MainWindow::sendFiles()
 {
 	m_filesToSend.clear();
-	m_filesToSend = QFileDialog::getOpenFileNames(this,	"Select one or more files to send",	".","text (*.txt *.csv);; binary (*.bin)");
+	m_filesToSend = QFileDialog::getOpenFileNames(this,	"Select one or more files to send",	".","Bitmap (*.bmp);;text (*.txt *.csv);; binary (*.bin)");
 	if (m_filesToSend.size() > 0)
 	{
 		for (int i = 0; i < m_filesToSend.size(); ++i)
 		{
-			printf_s("%d) %s\n", i + 1, m_filesToSend[i].toStdString().c_str());
+			QFileInfo tempInfo(m_filesToSend[i]);
+			printf_s("%d) %s, ", i + 1, m_filesToSend[i].toStdString().c_str());
+			printf_s("%d Bytes", (int)tempInfo.size());
+			if (tempInfo.suffix().compare("bmp", Qt::CaseInsensitive) == 0)
+			{
+				QImage image;
+				image.load(m_filesToSend[i]);
+				int w = image.width();
+				int h = image.height();
+				printf_s(", width: %d, height: %d", w, h);
+				int offset = 4;
+				uint8_t* sendBuf = new uint8_t[w * h * 3 + offset];
+				uint16_t* tmp = (uint16_t *)sendBuf;
+				*tmp = (uint16_t)w;
+				*(tmp+1) = (uint16_t)h;
+				for (int r = 0; r < h; ++r)
+				{
+					for (int c = 0; c < w; ++c)
+					{
+						QRgb pix = image.pixel(c, r);
+						sendBuf[r * w * 3 + c * 3 + offset] = (uint8_t)qRed(pix);
+						sendBuf[r * w * 3 + c * 3 + offset + 1] = (uint8_t)qGreen(pix);
+						sendBuf[r * w * 3 + c * 3 + offset + 2] = (uint8_t)qBlue(pix);
+					}
+				}
+				m_serial->write((char*)sendBuf, (qint64)(w * h * 3 + offset));
+				//printf_s("\n %x, %x, %x, %x", sendBuf[0], sendBuf[1], sendBuf[2], sendBuf[3]);
+			}
+			printf_s("\n");
 		}
 	}
 }
