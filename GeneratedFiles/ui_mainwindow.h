@@ -37,6 +37,7 @@ public:
     QAction *actionQuit;
     QAction *actionSend_FIle;
     QAction *actionResend_File;
+    QAction *actionSendFolder;
     QWidget *centralWidget;
     QVBoxLayout *verticalLayout;
     QHBoxLayout *horizontalLayout;
@@ -94,6 +95,11 @@ public:
         QIcon icon6;
         icon6.addFile(QStringLiteral(":/images/redo-5-128.png"), QSize(), QIcon::Normal, QIcon::Off);
         actionResend_File->setIcon(icon6);
+        actionSendFolder = new QAction(MainWindow);
+        actionSendFolder->setObjectName(QStringLiteral("actionSendFolder"));
+        QIcon icon7;
+        icon7.addFile(QStringLiteral(":/images/folder.png"), QSize(), QIcon::Normal, QIcon::Off);
+        actionSendFolder->setIcon(icon7);
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         verticalLayout = new QVBoxLayout(centralWidget);
@@ -149,12 +155,14 @@ public:
         menuHelp->addAction(actionAboutQt);
         menuFile->addAction(actionSend_FIle);
         menuFile->addAction(actionResend_File);
+        menuFile->addAction(actionSendFolder);
         mainToolBar->addAction(actionConnect);
         mainToolBar->addAction(actionDisconnect);
         mainToolBar->addAction(actionConfigure);
         mainToolBar->addAction(actionClear);
         mainToolBar->addAction(actionSend_FIle);
         mainToolBar->addAction(actionResend_File);
+        mainToolBar->addAction(actionSendFolder);
 
         retranslateUi(MainWindow);
 
@@ -206,6 +214,7 @@ public:
 #endif // QT_NO_SHORTCUT
         actionSend_FIle->setText(QApplication::translate("MainWindow", "Send FIle", nullptr));
         actionResend_File->setText(QApplication::translate("MainWindow", "Resend File", nullptr));
+        actionSendFolder->setText(QApplication::translate("MainWindow", "Send Folder", nullptr));
         menuCalls->setTitle(QApplication::translate("MainWindow", "Calls", nullptr));
         menuTools->setTitle(QApplication::translate("MainWindow", "Tools", nullptr));
         menuHelp->setTitle(QApplication::translate("MainWindow", "Help", nullptr));

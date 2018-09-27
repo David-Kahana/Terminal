@@ -53,6 +53,7 @@
 #include "ui_mainwindow.h"
 #include "console.h"
 #include "settingsdialog.h"
+#include "FileUtil.h"
 #include <QLabel>
 #include <QMessageBox>
 #include <QFileDialog>
@@ -167,6 +168,7 @@ void MainWindow::initActionsConnections()
     connect(m_ui->actionAbout, &QAction::triggered, this, &MainWindow::about);
     connect(m_ui->actionAboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
 	connect(m_ui->actionSend_FIle, &QAction::triggered, this, &MainWindow::sendFiles);
+	connect(m_ui->actionSendFolder, &QAction::triggered, this, &MainWindow::sendFolder);
 }
 
 void MainWindow::showStatusMessage(const QString &message)
@@ -177,7 +179,7 @@ void MainWindow::showStatusMessage(const QString &message)
 void MainWindow::sendFiles()
 {
 	m_filesToSend.clear();
-	m_filesToSend = QFileDialog::getOpenFileNames(this,	"Select one or more files to send",	".","Bitmap (*.bmp);;text (*.txt *.csv);; binary (*.bin)");
+	m_filesToSend = QFileDialog::getOpenFileNames(this,	"Select one or more files to send",	".","Bitmap (*.bmp);;text (*.txt *.csv);;binary (*.bin)");
 	if (m_filesToSend.size() > 0)
 	{
 		for (int i = 0; i < m_filesToSend.size(); ++i)
@@ -213,4 +215,62 @@ void MainWindow::sendFiles()
 			printf_s("\n");
 		}
 	}
+}
+
+void MainWindow::sendFolder()
+{
+	QString dirName = "";
+	dirName = QFileDialog::getExistingDirectory(this, "Select directory", ".", QFileDialog::ShowDirsOnly|QFileDialog::DontResolveSymlinks);
+	vector<string> fileList;
+	int status = CFileUtil::getFilesInDir(dirName.toStdString(), fileList);
+	//for (auto & fileName : fileList)
+	//{
+	//	printf_s("%s\n", fileName.c_str());
+	//}
+	sort(fileList.begin(), fileList.end());
+	//printf_s("\n*** SORTED ***\n");
+	//for (auto & fileName : fileList)
+	//{
+	//	printf_s("%s\n", fileName.c_str());
+	//}
+	
+
+
+
+	//m_filesToSend.clear();
+	//if (m_filesToSend.size() > 0)
+	//{
+	//	for (int i = 0; i < m_filesToSend.size(); ++i)
+	//	{
+	//		QFileInfo tempInfo(m_filesToSend[i]);
+	//		printf_s("%d) %s, ", i + 1, m_filesToSend[i].toStdString().c_str());
+	//		printf_s("%d Bytes", (int)tempInfo.size());
+	//		if (tempInfo.suffix().compare("bmp", Qt::CaseInsensitive) == 0)
+	//		{
+	//			QImage image;
+	//			image.load(m_filesToSend[i]);
+	//			int w = image.width();
+	//			int h = image.height();
+	//			printf_s(", width: %d, height: %d", w, h);
+	//			int offset = 4;
+	//			uint8_t* sendBuf = new uint8_t[w * h * 3 + offset];
+	//			uint16_t* tmp = (uint16_t *)sendBuf;
+	//			*tmp = (uint16_t)w;
+	//			*(tmp + 1) = (uint16_t)h;
+	//			for (int r = 0; r < h; ++r)
+	//			{
+	//				for (int c = 0; c < w; ++c)
+	//				{
+	//					QRgb pix = image.pixel(c, r);
+	//					sendBuf[r * w * 3 + c * 3 + offset] = (uint8_t)qRed(pix);
+	//					sendBuf[r * w * 3 + c * 3 + offset + 1] = (uint8_t)qGreen(pix);
+	//					sendBuf[r * w * 3 + c * 3 + offset + 2] = (uint8_t)qBlue(pix);
+	//				}
+	//			}
+	//			m_serial->write((char*)sendBuf, (qint64)(w * h * 3 + offset));
+	//			//printf_s("\n %x, %x, %x, %x", sendBuf[0], sendBuf[1], sendBuf[2], sendBuf[3]);
+	//		}
+	//		printf_s("\n");
+	//	}
+	//}
 }

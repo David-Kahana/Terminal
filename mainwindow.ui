@@ -64,6 +64,7 @@
     </property>
     <addaction name="actionSend_FIle"/>
     <addaction name="actionResend_File"/>
+    <addaction name="actionSendFolder"/>
    </widget>
    <addaction name="menuCalls"/>
    <addaction name="menuTools"/>
@@ -83,6 +84,7 @@
    <addaction name="actionClear"/>
    <addaction name="actionSend_FIle"/>
    <addaction name="actionResend_File"/>
+   <addaction name="actionSendFolder"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionAbout">
@@ -189,6 +191,15 @@
    </property>
    <property name="text">
     <string>Resend File</string>
+   </property>
+  </action>
+  <action name="actionSendFolder">
+   <property name="icon">
+    <iconset resource="terminal.qrc">
+     <normaloff>:/images/folder.png</normaloff>:/images/folder.png</iconset>
+   </property>
+   <property name="text">
+    <string>Send Folder</string>
    </property>
   </action>
  </widget>

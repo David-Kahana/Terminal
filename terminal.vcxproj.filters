@@ -80,6 +80,9 @@
     <ClCompile Include="GeneratedFiles\qrc_terminal.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="FileUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="console.h">
@@ -134,6 +137,9 @@
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_settingsdialog.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FileUtil.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

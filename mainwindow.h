@@ -85,6 +85,7 @@ private slots:
 
     void handleError(QSerialPort::SerialPortError error);
 	void sendFiles();
+	void sendFolder();
 
 private:
     void initActionsConnections();
