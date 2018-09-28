@@ -225,6 +225,11 @@ void MainWindow::sendFolder()
 	dirName = "D:/Work/David/Images/vid"; //shortcut for debugging
 	vector<string> fileList;
 	int status = CFileUtil::getFilesInDir(dirName.toStdString(), fileList);
+	if (status != OK)
+	{
+		printf_s("\n!!! Error in CFileUtil::getFilesInDir(...) \n");
+		return;
+	}
 	//for (auto & fileName : fileList)
 	//{
 	//	printf_s("%s\n", fileName.c_str());
@@ -238,31 +243,43 @@ void MainWindow::sendFolder()
 	
 	QImage inImage;
 	vector<QImage> images;
+	vector<uint8_t*> txBufs; //buffers sent to serial
 	QString fileToLoad;
 	int width,height, pitch, totalSize;
 	QImage::Format imFormat;
-	int i = 1;
-	//loop _
-	fileToLoad = dirName + "/" + QString::fromStdString(fileList[i]);
-	inImage.load(fileToLoad);
-	//width = inImage.width();
-	//height = inImage.height();
-	//imFormat = inImage.format();
-	//pitch = inImage.bytesPerLine();
-	//totalSize = inImage.sizeInBytes();
-	//printf_s("%03d) %s, width: %d, height: %d, pitch: %d, bytes: %d\n", i, fileList[i].c_str(), width, height, pitch, totalSize);
-	
-	images.push_back(inImage.convertToFormat(QImage::Format_RGB888));
-	width = images.back().width();
-	height = images.back().height();
-	imFormat = images.back().format();
-	pitch = images.back().bytesPerLine();
-	totalSize = images.back().sizeInBytes();
-	printf_s("%03d) %s, width: %d, height: %d, pitch: %d, bytes: %d\n", i, fileList[i].c_str(), width, height, pitch, totalSize);
+	for (auto fileName : fileList)
+	{
+		fileToLoad = dirName + "/" + QString::fromStdString(fileName);
+		inImage.load(fileToLoad);
+		images.push_back(inImage.convertToFormat(QImage::Format_RGB888));
+		width = images.back().width();
+		height = images.back().height();
+		imFormat = images.back().format();
+		pitch = images.back().bytesPerLine();
+		totalSize = images.back().sizeInBytes();
+		printf_s("%03d) %s, width: %d, height: %d, pitch: %d, bytes: %d\n", (int)images.size(), fileName.c_str(), width, height, pitch, totalSize);
+		uint32_t offset = 6;
+		uint8_t* buf = new uint8_t[height * pitch + offset];
+		uint16_t* tmp = (uint16_t *)buf;
+		*tmp = (uint16_t)width;
+		*(tmp + 1) = (uint16_t)height;
+		*(tmp + 2) = (uint16_t)pitch;
+		const uint8_t* pixels = images.back().constBits();
+		memcpy(buf + offset, pixels, totalSize);
+		txBufs.push_back(buf);
+	}
+	//uint8_t* b = txBufs[128];
+	//printf_s("128) w: %d, h: %d, p: %d, 127R: %d, 127G: %d, 127B: %d,\n", 
+	//	*((uint16_t*)b), *((uint16_t*)(b + 2)), *((uint16_t*)(b + 4)),
+	//	*(b + 6 + 127*3), *(b + 6 + 127 * 3 + 1), *(b + 6 + 127 * 3 + 2));
 	//uint8_t* tmp = images[0].bits();
 	//printf_s("R: %d, G: %d, B: %d\n", (int)(*tmp), (int)(*(tmp+1)), (int)(*(tmp + 2)));
-
-	
+	uint8_t* b = txBufs[128];
+	int w = (int)(*((uint16_t*)b));
+	//int h = (int)(*((uint16_t*)(b + 2)));
+	int p = (int)(*((uint16_t*)(b + 4)));
+	qint64 ret = m_serial->write((char*)b, (qint64)(w * p + 6));
+	printf_s("\nTotal of %d bytes were sent\n", (int)ret);
 	
 	//m_filesToSend.clear();
 	//if (m_filesToSend.size() > 0)
