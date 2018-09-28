@@ -220,7 +220,9 @@ void MainWindow::sendFiles()
 void MainWindow::sendFolder()
 {
 	QString dirName = "";
-	dirName = QFileDialog::getExistingDirectory(this, "Select directory", ".", QFileDialog::ShowDirsOnly|QFileDialog::DontResolveSymlinks);
+	QString startDir = "D:/Work/David/Images";
+	//dirName = QFileDialog::getExistingDirectory(this, "Select directory", startDir, QFileDialog::ShowDirsOnly|QFileDialog::DontResolveSymlinks);
+	dirName = "D:/Work/David/Images/vid"; //shortcut for debugging
 	vector<string> fileList;
 	int status = CFileUtil::getFilesInDir(dirName.toStdString(), fileList);
 	//for (auto & fileName : fileList)
@@ -234,9 +236,34 @@ void MainWindow::sendFolder()
 	//	printf_s("%s\n", fileName.c_str());
 	//}
 	
+	QImage inImage;
+	vector<QImage> images;
+	QString fileToLoad;
+	int width,height, pitch, totalSize;
+	QImage::Format imFormat;
+	int i = 1;
+	//loop _
+	fileToLoad = dirName + "/" + QString::fromStdString(fileList[i]);
+	inImage.load(fileToLoad);
+	//width = inImage.width();
+	//height = inImage.height();
+	//imFormat = inImage.format();
+	//pitch = inImage.bytesPerLine();
+	//totalSize = inImage.sizeInBytes();
+	//printf_s("%03d) %s, width: %d, height: %d, pitch: %d, bytes: %d\n", i, fileList[i].c_str(), width, height, pitch, totalSize);
+	
+	images.push_back(inImage.convertToFormat(QImage::Format_RGB888));
+	width = images.back().width();
+	height = images.back().height();
+	imFormat = images.back().format();
+	pitch = images.back().bytesPerLine();
+	totalSize = images.back().sizeInBytes();
+	printf_s("%03d) %s, width: %d, height: %d, pitch: %d, bytes: %d\n", i, fileList[i].c_str(), width, height, pitch, totalSize);
+	//uint8_t* tmp = images[0].bits();
+	//printf_s("R: %d, G: %d, B: %d\n", (int)(*tmp), (int)(*(tmp+1)), (int)(*(tmp + 2)));
 
-
-
+	
+	
 	//m_filesToSend.clear();
 	//if (m_filesToSend.size() > 0)
 	//{
