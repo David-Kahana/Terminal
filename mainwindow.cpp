@@ -54,6 +54,7 @@
 #include "console.h"
 #include "settingsdialog.h"
 #include "FileUtil.h"
+#include "Protocol.h"
 #include <QLabel>
 #include <QMessageBox>
 #include <QFileDialog>
@@ -259,15 +260,36 @@ void MainWindow::sendFolder()
 		totalSize = images.back().sizeInBytes();
 		printf_s("%03d) %s, width: %d, height: %d, pitch: %d, bytes: %d\n", (int)images.size(), fileName.c_str(), width, height, pitch, totalSize);
 		uint32_t offset = 6;
-		uint8_t* buf = new uint8_t[height * pitch + offset];
+		//uint8_t* buf = new uint8_t[height * pitch + offset];
+		uint8_t* buf = new uint8_t[height * pitch];
 		uint16_t* tmp = (uint16_t *)buf;
-		*tmp = (uint16_t)width;
-		*(tmp + 1) = (uint16_t)height;
-		*(tmp + 2) = (uint16_t)pitch;
+		//*tmp = (uint16_t)width;
+		//*(tmp + 1) = (uint16_t)height;
+		//*(tmp + 2) = (uint16_t)pitch;
 		const uint8_t* pixels = images.back().constBits();
-		memcpy(buf + offset, pixels, totalSize);
+		//memcpy(buf + offset, pixels, totalSize);
+		memcpy(buf, pixels, totalSize);
 		txBufs.push_back(buf);
 	}
+	//config TX
+	ConfigPixlePayload conf;
+	conf.bpp = 24;
+	conf.height = 8;
+	conf.width = 16;
+	conf.pitch = 48;
+	conf.frameSize = 384;
+
+	Message confMsg;
+	confMsg.type = CONFIG;
+	confMsg.size = conf.size + 7;
+	confMsg.payload = (uint8_t*)(&conf);
+
+
+
+	char confTx[11];
+
+
+
 	//uint8_t* b = txBufs[128];
 	//printf_s("128) w: %d, h: %d, p: %d, 127R: %d, 127G: %d, 127B: %d,\n", 
 	//	*((uint16_t*)b), *((uint16_t*)(b + 2)), *((uint16_t*)(b + 4)),
@@ -275,10 +297,12 @@ void MainWindow::sendFolder()
 	//uint8_t* tmp = images[0].bits();
 	//printf_s("R: %d, G: %d, B: %d\n", (int)(*tmp), (int)(*(tmp+1)), (int)(*(tmp + 2)));
 	uint8_t* b = txBufs[128];
-	int w = (int)(*((uint16_t*)b));
+	//int w = (int)(*((uint16_t*)b));
 	//int h = (int)(*((uint16_t*)(b + 2)));
-	int p = (int)(*((uint16_t*)(b + 4)));
-	qint64 ret = m_serial->write((char*)b, (qint64)(w * p + 6));
+	//int p = (int)(*((uint16_t*)(b + 4)));
+	//qint64 ret = m_serial->write((char*)b, (qint64)(w * p + 6));
+
+	qint64 ret = m_serial->write((char*)b, (qint64)(images[128].sizeInBytes()));
 	printf_s("\nTotal of %d bytes were sent\n", (int)ret);
 	
 	//m_filesToSend.clear();
