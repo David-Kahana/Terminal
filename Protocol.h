@@ -14,6 +14,13 @@ enum MessageTypes : uint8_t
 	DATA = 2
 };
 
+enum Replays : uint8_t
+{
+	READY = 0,
+	ACK = 1,
+	ERROR = 2,
+	NO_REPLAY = 255
+};
 enum ConfigTypes : uint8_t
 {
 	PIXEL = 0,
@@ -21,25 +28,38 @@ enum ConfigTypes : uint8_t
 #pragma endregion //Enums
 
 #pragma region Structs
-struct Message
+struct MessageReplay
 {
-	const uint8_t start = START_MSG; //1 byte
-	uint32_t size;                   //4 bytes  //add 7 to payload size
-	MessageTypes type;               //1 byte
-	uint8_t* payload;                //payload size
-	const uint8_t end = START_MSG;   //1 byte
-	                                 // total bytes: 7
+	uint8_t start;        //1 byte
+	uint32_t size;        //4 bytes  
+	MessageTypes msgType; //1 byte   MessageTypes::REPLAY
+	Replays replay;       //1 byte
+	uint8_t end;	      //1 byte
+	                      // total bytes: 8
 };
 
-struct ConfigPixlePayload
+struct MessageConfigPixle
 {
-	const ConfigTypes type = PIXEL; //1 byte
-	const uint32_t size = 16; //4 bytes
-	uint8_t bpp;              //1 byte
-	uint16_t width;           //2 bytes
-	uint16_t height;          //2 bytes
-	uint16_t pitch;           //2 bytes
-	uint32_t frameSize;       //4 bytes
-	                          // total bytes: 16
+	uint8_t start;         //1 byte
+	uint32_t size;         //4 bytes  
+	MessageTypes msgType;  //1 byte   MessageTypes::CONFIG
+	ConfigTypes cfgType;   //1 byte   ConfigTypes::PIXEL
+	uint8_t bpp;           //1 byte
+	uint16_t width;        //2 bytes
+	uint16_t height;       //2 bytes
+	uint16_t pitch;        //2 bytes
+	uint32_t frameSize;    //4 bytes
+	uint8_t end;           //1 byte
+						   // total bytes: 19
+};
+
+struct MessageFrame
+{
+	uint8_t start;         //1 byte
+	uint32_t size;         //4 bytes  
+	MessageTypes msgType;  //1 byte   MessageTypes::DATA
+	uint8_t* data;         //x bytes 
+	uint8_t end;           //1 byte
+						   // total bytes: x + 7
 };
 #pragma endregion //Structs

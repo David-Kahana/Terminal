@@ -19,6 +19,7 @@ public:
 	static int readFromFile(const string& fileName, char** buffer, unsigned int& size);
 	static int getFilesInDir(const string& dirName, vector<string>& files);
 	static int getFilesInDir(const wstring& dirName, vector<wstring>& files);
+	static void Sleep(const uint32_t millis);
 private:
 	static int readFromFile(const wchar_t* fileName, char** buffer, unsigned int& size);
 	static int writeToFile(const wchar_t* fileName, const char* buffer, unsigned int size);

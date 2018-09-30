@@ -93,12 +93,16 @@ private:
 private:
     void showStatusMessage(const QString &message);
 
+
     Ui::MainWindow *m_ui = nullptr;
     QLabel *m_status = nullptr;
     Console *m_console = nullptr;
     SettingsDialog *m_settings = nullptr;
     QSerialPort *m_serial = nullptr;
 	QStringList m_filesToSend;
+	uint8_t inBuf[128];
+	uint32_t inBufInd = 0;
+	uint8_t replay = 255;
 };
 
 #endif // MAINWINDOW_H

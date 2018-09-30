@@ -59,6 +59,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     m_ui(new Ui::MainWindow),
@@ -148,6 +149,29 @@ void MainWindow::writeData(const QByteArray &data)
 void MainWindow::readData()
 {
     const QByteArray data = m_serial->readAll();
+	for (auto b : data)
+	{
+		inBuf[inBufInd] = (uint8_t)b;
+		inBufInd++;
+	}
+	if (inBufInd >= 7) //search for replay message
+	{
+		bool msgFound = false;
+		replay = (uint8_t)Replays::NO_REPLAY;
+		uint32_t ind = 0;
+		while (!msgFound && ind < inBufInd + 7)
+		{
+			MessageReplay* rep = (MessageReplay*)(&(inBuf[ind]));
+			if (rep->start == START_MSG && rep->end == END_MSG && rep->size == 8 && rep->msgType == MessageTypes::REPLAY)
+			{
+				msgFound = true;
+				replay = (uint8_t)(rep->replay);
+				inBufInd = 0; //fix it!!!
+			}
+			ind++;
+		}
+	}
+	inBufInd = inBufInd % 128;
     m_console->putData(data);
 }
 
@@ -259,34 +283,61 @@ void MainWindow::sendFolder()
 		pitch = images.back().bytesPerLine();
 		totalSize = images.back().sizeInBytes();
 		printf_s("%03d) %s, width: %d, height: %d, pitch: %d, bytes: %d\n", (int)images.size(), fileName.c_str(), width, height, pitch, totalSize);
-		uint32_t offset = 6;
-		//uint8_t* buf = new uint8_t[height * pitch + offset];
-		uint8_t* buf = new uint8_t[height * pitch];
-		uint16_t* tmp = (uint16_t *)buf;
-		//*tmp = (uint16_t)width;
-		//*(tmp + 1) = (uint16_t)height;
-		//*(tmp + 2) = (uint16_t)pitch;
+		uint32_t offset = 7;
+		uint32_t sz = height * pitch + offset;
+		uint8_t* buf = new uint8_t[sz];
+		*buf = START_MSG;                          //MessageFrame.start
+		uint32_t* tmp32 = (uint32_t *)(buf + 1);
+	    *tmp32 = (uint32_t)(sz);                   //MessageFrame.size
+		*(buf + 5) = (uint8_t)MessageTypes::DATA;  //MessageFrame.msgType 
 		const uint8_t* pixels = images.back().constBits();
-		//memcpy(buf + offset, pixels, totalSize);
-		memcpy(buf, pixels, totalSize);
+		memcpy(buf + offset - 1, pixels, height * pitch); //MessageFrame.data 
+		*(buf + sz - 1) = END_MSG;                 //MessageFrame.end
 		txBufs.push_back(buf);
 	}
 	//config TX
-	ConfigPixlePayload conf;
-	conf.bpp = 24;
-	conf.height = 8;
-	conf.width = 16;
-	conf.pitch = 48;
-	conf.frameSize = 384;
+	MessageConfigPixle msgConf;
+	msgConf.start = START_MSG;
+	msgConf.size = 19;
+	msgConf.msgType = MessageTypes::CONFIG;
+	msgConf.cfgType = ConfigTypes::PIXEL;
+	msgConf.bpp = 24;
+	msgConf.width = 16;
+	msgConf.height = 8;
+	msgConf.pitch = 48;
+	msgConf.frameSize = 384;
+	msgConf.end = END_MSG;
 
-	Message confMsg;
-	confMsg.type = CONFIG;
-	confMsg.size = conf.size + 7;
-	confMsg.payload = (uint8_t*)(&conf);
+
+	//
+	qint64 ret = m_serial->write((char*)(&msgConf), (qint64)(msgConf.size));
+	printf_s("\nTotal of %d bytes were sent CONF\n", (int)ret);
+	CFileUtil::Sleep(200);
+	//wait for replay
+	Replays* rep = (Replays *)(&replay);
+	while (*rep == Replays::NO_REPLAY)
+	{
+		CFileUtil::Sleep(10);
+	}
+	if (*rep != Replays::ACK)
+	{
+		printf_s("did not get ACK, got %d\n", (int)(*rep));
+		return;
+	}
 
 
 
-	char confTx[11];
+
+	//MessageFrame frameMsg;
+	//frameMsg.start = START_MSG;
+	//frameMsg.size = msgConf.frameSize + 7;
+	//frameMsg.msgType = MessageTypes::DATA;
+	//frameMsg.data = txBufs[1];
+	//frameMsg.end = END_MSG;
+
+
+
+	//char confTx[11];
 
 
 
@@ -296,14 +347,14 @@ void MainWindow::sendFolder()
 	//	*(b + 6 + 127*3), *(b + 6 + 127 * 3 + 1), *(b + 6 + 127 * 3 + 2));
 	//uint8_t* tmp = images[0].bits();
 	//printf_s("R: %d, G: %d, B: %d\n", (int)(*tmp), (int)(*(tmp+1)), (int)(*(tmp + 2)));
-	uint8_t* b = txBufs[128];
+	//uint8_t* b = txBufs[128];
 	//int w = (int)(*((uint16_t*)b));
 	//int h = (int)(*((uint16_t*)(b + 2)));
 	//int p = (int)(*((uint16_t*)(b + 4)));
 	//qint64 ret = m_serial->write((char*)b, (qint64)(w * p + 6));
 
-	qint64 ret = m_serial->write((char*)b, (qint64)(images[128].sizeInBytes()));
-	printf_s("\nTotal of %d bytes were sent\n", (int)ret);
+	//qint64 ret = m_serial->write((char*)b, (qint64)(images[128].sizeInBytes()));
+	//printf_s("\nTotal of %d bytes were sent\n", (int)ret);
 	
 	//m_filesToSend.clear();
 	//if (m_filesToSend.size() > 0)

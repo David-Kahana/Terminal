@@ -101,6 +101,11 @@ int CFileUtil::getFilesInDir(const wstring& dirName, vector<wstring>& files)
 	return OK;
 }
 
+void CFileUtil::Sleep(const uint32_t millis)
+{
+	Sleep(millis);
+}
+
 int CFileUtil::readFromFile(const wchar_t* fileName, char** buffer, unsigned int& size)
 {
 	*buffer = nullptr;
