@@ -149,6 +149,7 @@ void MainWindow::writeData(const QByteArray &data)
 void MainWindow::readData()
 {
     const QByteArray data = m_serial->readAll();
+	bool msgFound = false;
 	for (auto b : data)
 	{
 		inBuf[inBufInd] = (uint8_t)b;
@@ -156,7 +157,6 @@ void MainWindow::readData()
 	}
 	if (inBufInd >= 7) //search for replay message
 	{
-		bool msgFound = false;
 		replay = (uint8_t)Replays::NO_REPLAY;
 		uint32_t ind = 0;
 		while (!msgFound && ind < inBufInd + 7)
@@ -164,15 +164,26 @@ void MainWindow::readData()
 			MessageReplay* rep = (MessageReplay*)(&(inBuf[ind]));
 			if (rep->start == START_MSG && rep->end == END_MSG && rep->size == 8 && rep->msgType == MessageTypes::REPLAY)
 			{
+				printf_s("got replay %d\n", (uint8_t)(rep->replay));
 				msgFound = true;
 				replay = (uint8_t)(rep->replay);
+				CFileUtil::uSleep(1);
+				sendFrame(frameNum);
+				frameNum++;
+				if (frameNum >= txBufs.size())
+				{
+					frameNum = 0;
+				}
 				inBufInd = 0; //fix it!!!
 			}
 			ind++;
 		}
 	}
 	inBufInd = inBufInd % 128;
-    m_console->putData(data);
+	if (!msgFound)
+	{
+		m_console->putData(data);
+	}
 }
 
 void MainWindow::handleError(QSerialPort::SerialPortError error)
@@ -268,7 +279,8 @@ void MainWindow::sendFolder()
 	
 	QImage inImage;
 	vector<QImage> images;
-	vector<uint8_t*> txBufs; //buffers sent to serial
+	txBufs.clear();
+	//vector<uint8_t*> txBufs; //buffers sent to serial
 	QString fileToLoad;
 	int width,height, pitch, totalSize;
 	QImage::Format imFormat;
@@ -284,63 +296,57 @@ void MainWindow::sendFolder()
 		totalSize = images.back().sizeInBytes();
 		printf_s("%03d) %s, width: %d, height: %d, pitch: %d, bytes: %d\n", (int)images.size(), fileName.c_str(), width, height, pitch, totalSize);
 		uint32_t offset = 7;
-		uint32_t sz = height * pitch + offset;
-		uint8_t* buf = new uint8_t[sz];
+		txBufSize = height * pitch + offset;
+		uint8_t* buf = new uint8_t[txBufSize + 1];
+		memset(buf, 0, txBufSize + 1);
 		*buf = START_MSG;                          //MessageFrame.start
 		uint32_t* tmp32 = (uint32_t *)(buf + 1);
-	    *tmp32 = (uint32_t)(sz);                   //MessageFrame.size
+	    *tmp32 = txBufSize;                   //MessageFrame.size
 		*(buf + 5) = (uint8_t)MessageTypes::DATA;  //MessageFrame.msgType 
 		const uint8_t* pixels = images.back().constBits();
 		memcpy(buf + offset - 1, pixels, height * pitch); //MessageFrame.data 
-		*(buf + sz - 1) = END_MSG;                 //MessageFrame.end
+		*(buf + txBufSize - 1) = END_MSG;                 //MessageFrame.end
 		txBufs.push_back(buf);
 	}
 	//config TX
-	MessageConfigPixle msgConf;
-	msgConf.start = START_MSG;
-	msgConf.size = 19;
-	msgConf.msgType = MessageTypes::CONFIG;
-	msgConf.cfgType = ConfigTypes::PIXEL;
-	msgConf.bpp = 24;
-	msgConf.width = 16;
-	msgConf.height = 8;
-	msgConf.pitch = 48;
-	msgConf.frameSize = 384;
-	msgConf.end = END_MSG;
-
-
-	//
-	qint64 ret = m_serial->write((char*)(&msgConf), (qint64)(msgConf.size));
+	char confTx[32];
+	memset(confTx, 0, 32);
+	MessageConfigPixle* msgConf = (MessageConfigPixle*)(confTx);
+	msgConf->start = START_MSG;
+	msgConf->size = 19;
+	msgConf->msgType = MessageTypes::CONFIG;
+	msgConf->cfgType = ConfigTypes::PIXEL;
+	msgConf->bpp = 24;
+	msgConf->width = 16;
+	msgConf->height = 8;
+	msgConf->pitch = 48;
+	msgConf->frameSize = 384;
+	msgConf->end = END_MSG;
+	
+	qint64 ret = m_serial->write(confTx, (qint64)(msgConf->size));
 	printf_s("\nTotal of %d bytes were sent CONF\n", (int)ret);
-	CFileUtil::Sleep(200);
+	//CFileUtil::uSleep(200);
 	//wait for replay
-	Replays* rep = (Replays *)(&replay);
-	while (*rep == Replays::NO_REPLAY)
-	{
-		CFileUtil::Sleep(10);
-	}
-	if (*rep != Replays::ACK)
-	{
-		printf_s("did not get ACK, got %d\n", (int)(*rep));
-		return;
-	}
-
-
-
-
+	//Replays* rep = (Replays *)(&replay);
+	//while (*rep == Replays::NO_REPLAY)
+	//{
+		//CFileUtil::uSleep(10);
+	//}
+	//if (*rep != Replays::ACK)
+	//{
+		//printf_s("did not get ACK, got %d\n", (int)(*rep));
+		//return;
+	//}
+	//else
+	//{
+		//printf_s("Got ACK, \n");
+	//}
 	//MessageFrame frameMsg;
 	//frameMsg.start = START_MSG;
 	//frameMsg.size = msgConf.frameSize + 7;
 	//frameMsg.msgType = MessageTypes::DATA;
 	//frameMsg.data = txBufs[1];
 	//frameMsg.end = END_MSG;
-
-
-
-	//char confTx[11];
-
-
-
 	//uint8_t* b = txBufs[128];
 	//printf_s("128) w: %d, h: %d, p: %d, 127R: %d, 127G: %d, 127B: %d,\n", 
 	//	*((uint16_t*)b), *((uint16_t*)(b + 2)), *((uint16_t*)(b + 4)),
@@ -352,10 +358,8 @@ void MainWindow::sendFolder()
 	//int h = (int)(*((uint16_t*)(b + 2)));
 	//int p = (int)(*((uint16_t*)(b + 4)));
 	//qint64 ret = m_serial->write((char*)b, (qint64)(w * p + 6));
-
 	//qint64 ret = m_serial->write((char*)b, (qint64)(images[128].sizeInBytes()));
 	//printf_s("\nTotal of %d bytes were sent\n", (int)ret);
-	
 	//m_filesToSend.clear();
 	//if (m_filesToSend.size() > 0)
 	//{
@@ -392,4 +396,15 @@ void MainWindow::sendFolder()
 	//		printf_s("\n");
 	//	}
 	//}
+}
+
+int MainWindow::sendFrame(uint32_t frameNum)
+{
+	qint64 ret = m_serial->write((char*)txBufs[frameNum], (qint64)(txBufSize + 1));
+	uint8_t* b = txBufs[frameNum];
+	uint32_t* tmp32 = (uint32_t *)(b + 1);
+	printf_s("%d: %c, %d, %d, %c\n ", frameNum, (char)*b, *tmp32, *(b+5), (char)*(b+ txBufSize -1));
+
+	printf_s("Total of %d bytes were sent DATA\n", (int)ret);
+	return OK;
 }

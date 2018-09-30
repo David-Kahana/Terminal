@@ -101,7 +101,7 @@ int CFileUtil::getFilesInDir(const wstring& dirName, vector<wstring>& files)
 	return OK;
 }
 
-void CFileUtil::Sleep(const uint32_t millis)
+void CFileUtil::uSleep(const uint32_t millis)
 {
 	Sleep(millis);
 }

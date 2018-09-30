@@ -54,7 +54,6 @@
 
 #include <QMainWindow>
 #include <QSerialPort>
-
 QT_BEGIN_NAMESPACE
 
 class QLabel;
@@ -93,6 +92,7 @@ private:
 private:
     void showStatusMessage(const QString &message);
 
+	int sendFrame(uint32_t frameNum);
 
     Ui::MainWindow *m_ui = nullptr;
     QLabel *m_status = nullptr;
@@ -103,6 +103,9 @@ private:
 	uint8_t inBuf[128];
 	uint32_t inBufInd = 0;
 	uint8_t replay = 255;
+	std::vector<uint8_t*> txBufs; //buffers sent to serial
+	uint32_t txBufSize = 0;
+	uint32_t frameNum = 0;
 };
 
 #endif // MAINWINDOW_H

@@ -28,6 +28,8 @@ enum ConfigTypes : uint8_t
 #pragma endregion //Enums
 
 #pragma region Structs
+#pragma pack(push) 
+#pragma pack(1) 
 struct MessageReplay
 {
 	uint8_t start;        //1 byte
@@ -38,7 +40,8 @@ struct MessageReplay
 	                      // total bytes: 8
 };
 
-struct MessageConfigPixle
+#pragma pack(1)   
+struct MessageConfigPixle 
 {
 	uint8_t start;         //1 byte
 	uint32_t size;         //4 bytes  
@@ -53,6 +56,7 @@ struct MessageConfigPixle
 						   // total bytes: 19
 };
 
+#pragma pack(1) 
 struct MessageFrame
 {
 	uint8_t start;         //1 byte
@@ -62,4 +66,5 @@ struct MessageFrame
 	uint8_t end;           //1 byte
 						   // total bytes: x + 7
 };
+#pragma pack(pop) 
 #pragma endregion //Structs
