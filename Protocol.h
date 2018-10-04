@@ -4,6 +4,9 @@
 #pragma region Defines
 #define START_MSG 'S'
 #define END_MSG 'E'
+#define MSG_REPLAY_SZ 8
+#define MSG_CFG_PIX_SZ 19
+#define MSG_DATA_ADD 7
 #pragma endregion //Defines
 
 #pragma region Enums

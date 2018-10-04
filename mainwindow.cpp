@@ -304,7 +304,13 @@ void MainWindow::sendFolder()
 	    *tmp32 = txBufSize;                   //MessageFrame.size
 		*(buf + 5) = (uint8_t)MessageTypes::DATA;  //MessageFrame.msgType 
 		const uint8_t* pixels = images.back().constBits();
-		memcpy(buf + offset - 1, pixels, height * pitch); //MessageFrame.data 
+		//memcpy(buf + offset - 1, pixels, height * pitch); //MessageFrame.data 
+		for (uint32_t i = 0; i < totalSize; i += 3)
+		{
+			*(buf + offset - 1 + i) = *(pixels + i + 1); //Green
+			*(buf + offset - 1 + i + 1) = *(pixels + i); //Red
+			*(buf + offset - 1 + i + 2) = *(pixels + i + 2); //Blue
+		}
 		*(buf + txBufSize - 1) = END_MSG;                 //MessageFrame.end
 		txBufs.push_back(buf);
 	}
