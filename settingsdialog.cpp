@@ -55,11 +55,15 @@
 #include <QIntValidator>
 #include <QLineEdit>
 #include <QSerialPortInfo>
+#include <FileUtil.h>
+#include <QMessageBox>
+#include <QJsonObject>
 
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
-SettingsDialog::SettingsDialog(QWidget *parent) :
-    QDialog(parent),
+SettingsDialog::SettingsDialog(string settingsFile, QWidget *parent) :
+	QDialog(parent),
+	m_settingsFile(settingsFile),
     m_ui(new Ui::SettingsDialog),
     m_intValidator(new QIntValidator(0, 4000000, this))
 {
@@ -76,10 +80,12 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     connect(m_ui->serialPortInfoListBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SettingsDialog::checkCustomDevicePathPolicy);
 
-    fillPortsParameters();
-    fillPortsInfo();
-
-    updateSettings();
+	fillPortsParameters();
+	fillPortsInfo();
+	if (loadSettings() != OK)
+	{
+		updateSettings();
+	}
 }
 
 SettingsDialog::~SettingsDialog()
@@ -109,6 +115,7 @@ void SettingsDialog::showPortInfo(int idx)
 void SettingsDialog::apply()
 {
     updateSettings();
+	saveSettings();
     hide();
 }
 
@@ -217,4 +224,163 @@ void SettingsDialog::updateSettings()
     m_currentSettings.stringFlowControl = m_ui->flowControlBox->currentText();
 
     m_currentSettings.localEchoEnabled = m_ui->localEchoCheckBox->isChecked();
+}
+
+int32_t SettingsDialog::loadSettings()
+{
+	if (!CFileUtil::fileExists(m_settingsFile))
+	{
+		return -1; //file does not exist
+	}
+	char* readBuf = nullptr;
+	uint32_t readSize = 0;
+	if (CFileUtil::readFromFile(m_settingsFile, &readBuf, readSize) != OK)
+	{
+		return -2; //could not read file
+	}
+	printf_s("\nRead bytes: %d \n", readSize);
+	//for (uint32_t i = 0; i < readSize; ++i)
+	//{
+		printf_s("\n %s \n", readBuf);
+	//}
+	QByteArray qba(readBuf, readSize-1);
+
+	QJsonParseError jerr;
+	m_settingsJson = QJsonDocument::fromJson(qba,&jerr);
+	if (jerr.error != QJsonParseError::ParseError::NoError)
+	{
+		QMessageBox::warning(parentWidget(), QString("Problem parsing json settings"), 
+			jerr.errorString(), QMessageBox::StandardButton::Ok, QMessageBox::StandardButton::Ok);
+		delete[]readBuf;
+		return -3; //Problem parsing json
+	}
+	if (json2settings() != OK)
+	{
+		return -4; //Problem parsing json settings
+	}
+	updateSettings();
+	return OK;
+}
+
+int32_t SettingsDialog::saveSettings()
+{
+	settings2json();
+	QByteArray qba = m_settingsJson.toJson();
+	//qba[qba.size() - 1] = EOF;
+	printf_s("\nWrite bytes: %d \n", qba.size());
+	printf_s("\n %s \n", qba.data());
+	if (CFileUtil::writeToFile(m_settingsFile, qba.data(), qba.size()) != OK)
+	{
+		return -1; //could not write file
+	}
+	return OK;
+}
+
+int32_t SettingsDialog::settings2json()
+{
+	QJsonObject main;
+	main.insert("name", m_currentSettings.name);
+	main.insert("baudRate", m_currentSettings.stringBaudRate);
+	main.insert("dataBits", m_currentSettings.stringDataBits);
+	main.insert("parity", m_currentSettings.stringParity);
+	main.insert("stopBits", m_currentSettings.stringStopBits);
+	main.insert("flowControl", m_currentSettings.stringFlowControl);
+	main.insert("localEchoEnabled", m_currentSettings.localEchoEnabled);
+	m_settingsJson = QJsonDocument();
+	m_settingsJson.setObject(main);
+	return OK;
+}
+
+int32_t SettingsDialog::json2settings() 
+{
+	if (!m_settingsJson.isObject())
+	{
+		return -1; //json document is not an object 
+	}
+	QJsonObject main = m_settingsJson.object();
+	Settings newSettings;
+	if (!checkJsonEntry(main,"name", QJsonValue::Type::String))
+	{
+		return -2; //json does not contain "name" or "name" is not a string
+	}
+	newSettings.name = main["name"].toString();
+	
+	if (!checkJsonEntry(main, "baudRate", QJsonValue::Type::String))
+	{
+		return -3; //json does not contain "baudRate" or "baudRate" is not a string
+	}
+	newSettings.stringBaudRate = main["baudRate"].toString();
+	
+	if (!checkJsonEntry(main, "dataBits", QJsonValue::Type::String))
+	{
+		return -4; //json does not contain "baudRate" or "baudRate" is not a string
+	}
+	newSettings.stringDataBits = main["dataBits"].toString();
+	
+	if (!checkJsonEntry(main, "parity", QJsonValue::Type::String))
+	{
+		return -5; //json does not contain "parity" or "parity" is not a string
+	}
+	newSettings.stringParity = main["parity"].toString();
+	
+	if (!checkJsonEntry(main, "stopBits", QJsonValue::Type::String))
+	{
+		return -6; //json does not contain "stopBits" or "stopBits" is not a string
+	}
+	newSettings.stringStopBits = main["stopBits"].toString();
+	
+	if (!checkJsonEntry(main, "flowControl", QJsonValue::Type::String))
+	{
+		return -7; //json does not contain "flowControl" or "flowControl" is not a string
+	}
+	newSettings.stringFlowControl = main["flowControl"].toString();
+
+	if (!checkJsonEntry(main, "localEchoEnabled", QJsonValue::Type::Bool))
+	{
+		return -8; //json does not contain "localEchoEnabled" or "localEchoEnabled" is not a boolean
+	}
+	newSettings.localEchoEnabled = main["localEchoEnabled"].toBool();
+	updateUiFromNewSettings(newSettings);
+	return OK;
+}
+
+int32_t SettingsDialog::updateUiFromNewSettings(Settings newSettings)
+{
+	int idx = m_ui->serialPortInfoListBox->findText(newSettings.name);
+	if (idx >= 0)
+	{
+		m_ui->serialPortInfoListBox->setCurrentIndex(idx);
+	}
+	idx = m_ui->baudRateBox->findText(newSettings.stringBaudRate);
+	if (idx >= 0)
+	{
+		m_ui->baudRateBox->setCurrentIndex(idx);
+	}
+	idx = m_ui->dataBitsBox->findText(newSettings.stringDataBits);
+	if (idx >= 0)
+	{
+		m_ui->dataBitsBox->setCurrentIndex(idx);
+	}
+	idx = m_ui->parityBox->findText(newSettings.stringParity);
+	if (idx >= 0)
+	{
+		m_ui->parityBox->setCurrentIndex(idx);
+	}
+	idx = m_ui->stopBitsBox->findText(newSettings.stringStopBits);
+	if (idx >= 0)
+	{
+		m_ui->stopBitsBox->setCurrentIndex(idx);
+	}
+	idx = m_ui->flowControlBox->findText(newSettings.stringFlowControl);
+	if (idx >= 0)
+	{
+		m_ui->flowControlBox->setCurrentIndex(idx);
+	}
+	m_ui->localEchoCheckBox->setEnabled(newSettings.localEchoEnabled);
+	return OK;
+}
+
+bool SettingsDialog::checkJsonEntry(QJsonObject obj, QString key, QJsonValue::Type t)
+{
+	return (obj.contains(key) && obj[key].type() == t);
 }

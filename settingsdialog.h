@@ -54,6 +54,7 @@
 
 #include <QDialog>
 #include <QSerialPort>
+#include <QJsonDocument>
 
 QT_BEGIN_NAMESPACE
 
@@ -85,7 +86,7 @@ public:
         bool localEchoEnabled;
     };
 
-    explicit SettingsDialog(QWidget *parent = nullptr);
+    explicit SettingsDialog(std::string settingsFile, QWidget *parent = nullptr);
     ~SettingsDialog();
 
     Settings settings() const;
@@ -100,11 +101,21 @@ private:
     void fillPortsParameters();
     void fillPortsInfo();
     void updateSettings();
+	int32_t loadSettings();
+	int32_t saveSettings();
+	int32_t settings2json();
+	int32_t json2settings();
+	int32_t updateUiFromNewSettings(Settings newSettings);
+
+	bool checkJsonEntry(QJsonObject obj, QString key, QJsonValue::Type t);
+
 
 private:
     Ui::SettingsDialog *m_ui = nullptr;
     Settings m_currentSettings;
     QIntValidator *m_intValidator = nullptr;
+	std::string m_settingsFile = "";
+	QJsonDocument m_settingsJson;
 };
 
 #endif // SETTINGSDIALOG_H

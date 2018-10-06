@@ -1,0 +1,9 @@
+{
+    "baudRate": "115200",
+    "dataBits": "8",
+    "flowControl": "None",
+    "localEchoEnabled": true,
+    "name": "COM5",
+    "parity": "None",
+    "stopBits": "1"
+}

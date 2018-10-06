@@ -98,6 +98,7 @@ private:
     QLabel *m_status = nullptr;
     Console *m_console = nullptr;
     SettingsDialog *m_settings = nullptr;
+	std::string m_settingsPath = "";
     QSerialPort *m_serial = nullptr;
 	QStringList m_filesToSend;
 	uint8_t inBuf[128];

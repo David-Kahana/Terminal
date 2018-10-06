@@ -59,15 +59,15 @@
 #include <QMessageBox>
 #include <QFileDialog>
 
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     m_ui(new Ui::MainWindow),
     m_status(new QLabel),
     m_console(new Console),
-    m_settings(new SettingsDialog),
     m_serial(new QSerialPort(this))
 {
+	m_settingsPath = ".\\settings.json"; 
+	m_settings = new SettingsDialog(m_settingsPath, this);
 	m_filesToSend.clear();
     m_ui->setupUi(this);
     m_console->setEnabled(false);
@@ -282,7 +282,7 @@ void MainWindow::sendFolder()
 	txBufs.clear();
 	//vector<uint8_t*> txBufs; //buffers sent to serial
 	QString fileToLoad;
-	int width,height, pitch, totalSize;
+	uint32_t width, height, pitch, totalSize;
 	QImage::Format imFormat;
 	for (auto fileName : fileList)
 	{

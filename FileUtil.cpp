@@ -84,10 +84,7 @@ int CFileUtil::getFilesInDir(const string& dirName, vector<string>& files)
 {
 	for (auto & p : filesystem::directory_iterator(dirName))
 	{
-		//string str = p.path().generic_string();
 		files.push_back(p.path().filename().generic_string());
-		//files.push_back(p.path().generic_string());
-		//cout << str << std::endl;
 	}
 	return OK;
 }
@@ -96,7 +93,7 @@ int CFileUtil::getFilesInDir(const wstring& dirName, vector<wstring>& files)
 {
 	for (auto & p : filesystem::directory_iterator(dirName))
 	{
-		cout << p << std::endl;
+		files.push_back(p.path().filename().generic_wstring());
 	}
 	return OK;
 }
